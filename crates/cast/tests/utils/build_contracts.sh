@@ -2,7 +2,7 @@
 set -e
 
 # "major-cairo-version scarb-version"
-VERSIONS=("v1 0.4.1" "v2 0.5.2")
+VERSIONS=("v1 0.4.1" "v2 0.6.0-alpha.2")
 ASDF_DATA_DIR=$(asdf info | grep -e "ASDF_DATA_DIR" | awk -F '=' '{print $2}')
 
 for versions_tuple in "${VERSIONS[@]}"; do
