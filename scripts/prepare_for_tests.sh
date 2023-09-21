@@ -69,9 +69,7 @@ for scarb_version in "${SCARB_VERSIONS[@]}"; do
   fi
 done
 
-asdf global scarb 0.4.1
-rm .tool-versions
-
+asdf local scarb 0.4.1
 echo "All done!"
 exit 0
 

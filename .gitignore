@@ -1,7 +1,8 @@
 .idea
 pyproject.toml
 .DS_Store
-.tool-versions
+*/.tool-versions
+!cast/.tool-versions
 target
 .vscode/
 .env
