@@ -93,7 +93,7 @@ jobs:
         run: |
           sudo apt install -y libgmp3-dev
           pip install starknet-devnet==${{ env.DEVNET_VERSION }}
-      - uses: asdf-vm/actions/install@v2
+      - uses: asdf-vm/actions/setup@v2
       - name: Prepare for tests
         run: |
           ./scripts/prepare_for_tests.sh
