@@ -99,6 +99,7 @@ jobs:
           ./scripts/prepare_for_tests.sh
       - name: Run tests
         run: cargo test --release -p cast
+        working-directory: ./crates/cast
 
   rustfmt:
     runs-on: ubuntu-latest
