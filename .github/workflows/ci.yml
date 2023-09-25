@@ -97,9 +97,12 @@ jobs:
       - name: Prepare for tests
         run: |
           ./scripts/prepare_for_tests.sh
+      - name: Set Scarb version
+        run: |
+          rm .tool-versions
+          asdf global scarb 0.4.1
       - name: Run tests
         run: cargo test --release -p cast
-        working-directory: ./crates/cast
 
   rustfmt:
     runs-on: ubuntu-latest
