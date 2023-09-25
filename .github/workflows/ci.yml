@@ -97,6 +97,7 @@ jobs:
       - name: Prepare for tests
         run: |
           ./scripts/prepare_for_tests.sh
+        working-directory: ./crates/cast
       - name: Run tests
         run: cargo test --release -p cast
         working-directory: ./crates/cast
