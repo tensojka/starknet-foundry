@@ -97,7 +97,6 @@ jobs:
       - name: Prepare for tests
         run: |
           ./scripts/prepare_for_tests.sh
-      - uses: software-mansion/setup-scarb@v1.3.0
       - name: Run tests
         run: cargo test --release -p cast
 
