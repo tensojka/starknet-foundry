@@ -69,7 +69,7 @@ for scarb_version in "${SCARB_VERSIONS[@]}"; do
   fi
 done
 
-asdf local scarb 0.4.1
+asdf local scarb 0.7.0
 echo "All done!"
 exit 0
 
