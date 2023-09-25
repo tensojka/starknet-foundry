@@ -96,7 +96,9 @@ jobs:
       - uses: asdf-vm/actions/setup@v2
       - name: Prepare for tests
         run: |
-          echo . "$HOME/.asdf/asdf.sh" >> ~/.bashrc && ./scripts/prepare_for_tests.sh
+          echo . "$HOME/.asdf/asdf.sh" >> ~/.bashrc
+          source $HOME/.bashrc
+          ./scripts/prepare_for_tests.sh
       - name: Set Scarb version
         run: |
           rm .tool-versions
