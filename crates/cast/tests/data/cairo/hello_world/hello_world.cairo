@@ -9,5 +9,5 @@ fn print_felt252(felt_: felt252) {
 
 fn main() {
     'Hello, World!'.print();
-    print_felt252(123.into());
+    print_felt252('Hello, cheatcode!');
 }
