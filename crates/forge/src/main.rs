@@ -4,11 +4,12 @@ use clap::Parser;
 use include_dir::{include_dir, Dir};
 use scarb_metadata::{MetadataCommand, PackageMetadata};
 use scarb_ui::args::PackagesFilter;
+use std::env;
 use std::path::PathBuf;
 use tempfile::{tempdir, TempDir};
 
-use forge::{pretty_printing, RunnerConfig};
-use forge::{run, TestFileSummary};
+use forge::{pretty_printing, RunnerConfig, RunnerParams};
+use forge::{run, TestCrateSummary};
 
 use forge::scarb::{
     config_from_scarb_for_package, corelib_for_package, dependencies_for_package,
@@ -39,6 +40,24 @@ struct Args {
 
     #[command(flatten)]
     packages_filter: PackagesFilter,
+
+    /// Number of fuzzer runs
+    #[arg(short = 'r', long, value_parser = validate_fuzzer_runs_value)]
+    fuzzer_runs: Option<u32>,
+
+    /// Seed for the fuzzer
+    #[arg(short = 's', long)]
+    fuzzer_seed: Option<u64>,
+}
+
+fn validate_fuzzer_runs_value(val: &str) -> Result<u32> {
+    let parsed_val: u32 = val
+        .parse()
+        .map_err(|_| anyhow!("Failed to parse {val} as u32"))?;
+    if parsed_val < 3 {
+        bail!("Number of fuzzer runs must be greater than or equal to 3")
+    }
+    Ok(parsed_val)
 }
 
 fn load_predeployed_contracts() -> Result<TempDir> {
@@ -49,7 +68,7 @@ fn load_predeployed_contracts() -> Result<TempDir> {
     Ok(tmp_dir)
 }
 
-fn extract_failed_tests(tests_summaries: Vec<TestFileSummary>) -> Vec<TestCaseSummary> {
+fn extract_failed_tests(tests_summaries: Vec<TestCrateSummary>) -> Vec<TestCaseSummary> {
     tests_summaries
         .into_iter()
         .flat_map(|test_file_summary| test_file_summary.test_case_summaries)
@@ -79,11 +98,12 @@ fn main_execution() -> Result<bool> {
         .match_many(&scarb_metadata)
         .context("Failed to find any packages matching the specified filter")?;
 
+    let package_root = &scarb_metadata.workspace.root;
     let mut all_failed_tests = vec![];
     for package in &packages {
         let forge_config = config_from_scarb_for_package(&scarb_metadata, &package.id)?;
         let (package_path, lib_path) = paths_for_package(&scarb_metadata, &package.id)?;
-        std::env::set_current_dir(package_path.clone())?;
+        env::set_current_dir(package_path.clone())?;
 
         // TODO(#671)
         let target_dir = target_dir_for_package(&scarb_metadata.workspace.root)?;
@@ -106,6 +126,8 @@ fn main_execution() -> Result<bool> {
             args.test_filter.clone(),
             args.exact,
             args.exit_first,
+            args.fuzzer_runs,
+            args.fuzzer_seed,
             &forge_config,
         );
 
@@ -115,15 +137,21 @@ fn main_execution() -> Result<bool> {
             .transpose()?
             .unwrap_or_default();
 
+        let runner_params = RunnerParams::new(
+            corelib_path,
+            contracts,
+            predeployed_contracts.clone(),
+            env::vars().collect(),
+        );
+
         let tests_file_summaries = run(
+            package_root,
             &package_path,
             &package_name,
             &lib_path,
-            &Some(dependencies.clone()),
+            dependencies,
             &runner_config,
-            &corelib_path,
-            &contracts,
-            &predeployed_contracts,
+            &runner_params,
         )?;
 
         let mut failed_tests = extract_failed_tests(tests_file_summaries);

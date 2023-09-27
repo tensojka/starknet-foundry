@@ -7,21 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.7.1] - 2023-09-13
+
 ### Forge
 
 #### Added
 
-- Support for scarb workspaces.
+- `var` library function for reading environmental variables
 
-### Changed
+### Fixed
+- Using any concrete `block_id` when using forking mode, would lead to crashes 
 
-- Tests are collected only from `tests` folder and a package tree
+## [0.7.0] - 2023-09-13
+
+### Forge
+
+#### Added
+
+- Support for scarb workspaces
+- Initial version of fuzz testing with randomly generated values
+- `#[fork(...)]` attribute allowing testing against a network fork
+
+#### Changed
+
+- Tests are collected only from a package tree (`src/lib.cairo` as an entrypoint) and `tests` folder:
+  - If there is a `lib.cairo` file in `tests` folder, then it is treated as an entrypoint to the `tests` package from which tests are collected
+  - Otherwise, all test files matching `tests/*.cairo` regex are treated as modules and added to a single virtual `lib.cairo`, which is treated as described above
 
 ### Cast
 
 #### Added
 
 - `account add` command for importing accounts to the accounts file
+- `account create` command for creating openzeppelin accounts with starkli-style keystore
+- `account deploy` command for deploying openzeppelin accounts with starkli-style keystore
+
+### Changed
+
+- `--add-profile` no longer accepts `-a` for short
+- allow the `id` property in multicalls to be referenced in the inputs of `deploy` and `invoke` calls
 
 ## [0.6.0] - 2023-09-13
 
