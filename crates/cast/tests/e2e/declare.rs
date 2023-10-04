@@ -10,7 +10,6 @@ use test_case::test_case;
 
 #[tokio::test]
 async fn test_happy_case() {
-
     let contract_path =
         duplicate_directory_with_salt(CONTRACTS_DIR.to_string() + "/map", "put", "1");
 
@@ -43,6 +42,7 @@ async fn test_happy_case() {
     fs::remove_dir_all(contract_path).unwrap();
 }
 
+// devnet
 #[tokio::test]
 async fn contract_already_declared() {
     let args = vec![
@@ -61,6 +61,7 @@ async fn contract_already_declared() {
         .current_dir(CONTRACTS_DIR.to_string() + "/map")
         .args(args);
 
+    // devnet: pozwala na parę declarów pod rząd, powinien wywalać already declared
     snapbox.assert().success().stderr_matches(indoc! {r#"
         command: declare
         [..] is already declared.
@@ -118,6 +119,7 @@ fn scarb_build_fails(contract_path: &str, accounts_file_path: &str) {
     "#});
 }
 
+// devnet
 #[test]
 fn test_too_low_max_fee() {
     let contract_path =
@@ -142,6 +144,7 @@ fn test_too_low_max_fee() {
         .current_dir(&contract_path)
         .args(args);
 
+    // devnet: devnet łyka każde max fee jak leci, więc ten test normalnie tworzy kolejnego declare'a
     snapbox.assert().success().stderr_matches(indoc! {r#"
         command: declare
         error: Transaction has been rejected

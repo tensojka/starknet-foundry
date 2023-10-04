@@ -88,10 +88,11 @@ fn test_wrong_function_name() {
 
     snapbox.assert().stderr_matches(indoc! {r#"
         command: call
-        error: Contract error
+        error: Requested entry point was not found
     "#});
 }
 
+// devnet
 #[test]
 fn test_wrong_calldata() {
     let contract_address = from_env("CAST_MAP_ADDRESS").unwrap();

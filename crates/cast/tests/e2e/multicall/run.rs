@@ -47,6 +47,7 @@ async fn test_calldata_ids() {
 
     let stdout_str =
         std::str::from_utf8(&out.stdout).expect("failed to convert command output to string");
+    dbg!(&stdout_str);
 
     assert!(out.stderr.is_empty());
     assert!(stdout_str.contains("command: multicall"));
@@ -89,7 +90,7 @@ async fn test_deploy_fail() {
     let stderr_str =
         std::str::from_utf8(&out.stderr).expect("failed to convert command output to string");
 
-    assert!(stderr_str.contains("Class with hash 0x1 is not declared"));
+    assert!(stderr_str.contains("No compiled class hash found for class_hash"));
 }
 
 #[tokio::test]
@@ -113,7 +114,7 @@ async fn test_invoke_fail() {
         std::str::from_utf8(&out.stderr).expect("failed to convert command output to string");
 
     assert!(out.stdout.is_empty());
-    assert!(stderr_str.contains("Contract not found"));
+    assert!(stderr_str.contains("is not deployed"));
 }
 
 #[tokio::test]
@@ -130,8 +131,7 @@ async fn test_deploy_success_invoke_fails() {
     args.append(&mut vec!["multicall", "run", "--path", path_str]);
 
     let snapbox = runner(&args);
-    snapbox.assert().success().stderr_matches(indoc! {r#"
-        command: multicall run
-        error: Contract not found
-    "#});
+    let output = String::from_utf8(snapbox.assert().success().get_output().stderr.clone()).unwrap();
+
+    assert!(output.contains("is not deployed"));
 }

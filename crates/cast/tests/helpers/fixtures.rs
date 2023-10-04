@@ -83,13 +83,8 @@ pub async fn declare_deploy_contract(account: &str, path: &str, shortname: &str)
     let receipt = get_transaction_receipt(transaction_hash).await;
     let mut address = None;
     match receipt {
-        TransactionReceipt::Invoke(invoke_receipt) => {
-            for event in invoke_receipt.events {
-                if event.from_address == FieldElement::from_hex_be(UDC_ADDRESS).unwrap() {
-                    address = event.data.first().copied();
-                    break;
-                }
-            }
+        TransactionReceipt::Deploy(deploy_receipt) => {
+            address = Some(deploy_receipt.contract_address);
         }
         _ => {
             panic!("Unexpected TransactionReceipt variant");
@@ -127,10 +122,10 @@ pub async fn mint_token(recipient: &str, amount: f32) {
     let json = json!(
         {
             "address": recipient,
-            "amount": amount,
-            "lite": true
+            "amount": amount
         }
     );
+    dbg!(&json);
     client
         .post("http://127.0.0.1:5055/mint")
         .header("Content-Type", "application/json")
@@ -187,6 +182,7 @@ pub async fn get_transaction_receipt(tx_hash: FieldElement) -> TransactionReceip
     let result = resp
         .get("result")
         .expect("There is no `result` field in getTransactionReceipt response");
+    dbg!(&result);
     serde_json::from_str(&result.to_string())
         .expect("Could not serialize result to `TransactionReceipt`")
 }

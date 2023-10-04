@@ -11,6 +11,7 @@ use starknet::core::types::TransactionReceipt::DeployAccount;
 use std::{env, fs};
 use test_case::test_case;
 
+// devnet
 #[tokio::test]
 pub async fn test_happy_case() {
     let (created_dir, accounts_file) = create_account("3", false).await;
@@ -26,7 +27,7 @@ pub async fn test_happy_case() {
         "--name",
         "my_account",
         "--max-fee",
-        "10000000000000000",
+        "999999999999999",
         "--class-hash",
         DEVNET_OZ_CLASS_HASH,
     ];
@@ -55,9 +56,22 @@ pub async fn test_happy_case() {
     fs::remove_dir_all(created_dir).unwrap();
 }
 
+// devnet
 #[tokio::test]
 pub async fn test_happy_case_add_profile() {
     let (created_dir, accounts_file) = create_account("4", true).await;
+
+    let contents = fs::read_to_string(&created_dir.join(&accounts_file)).unwrap();
+    let items: Value =
+        serde_json::from_str(&contents).expect("Failed to parse accounts file at {path}");
+
+    mint_token(
+        items["alpha-goerli"]["my_account"]["address"]
+            .as_str()
+            .unwrap(),
+        1e34,
+    )
+    .await;
 
     // test
     let args = vec![
@@ -71,16 +85,20 @@ pub async fn test_happy_case_add_profile() {
         "--name",
         "my_account",
         "--max-fee",
-        "10000000000000000",
+        "999999999999999",
         "--class-hash",
         DEVNET_OZ_CLASS_HASH,
     ];
+    dbg!(&args);
+    dbg!(&created_dir);
+    dbg!(&accounts_file);
 
     let snapbox = Command::new(cargo_bin!("sncast"))
         .current_dir(&created_dir)
         .args(&args);
     let bdg = snapbox.assert();
     let out = bdg.get_output();
+    dbg!(&out);
 
     let hash = get_transaction_hash(&out.stdout);
     let receipt = get_transaction_receipt(hash).await;
@@ -131,6 +149,7 @@ fn test_account_deploy_error(salt: &str, accounts_content: &str, error: &str) {
     fs::remove_dir_all(current_dir).unwrap();
 }
 
+// devnet - lite minting?
 #[tokio::test]
 async fn test_too_low_max_fee() {
     let (created_dir, accounts_file) = create_account("5", false).await;
@@ -261,7 +280,7 @@ pub async fn create_account(salt: &str, add_profile: bool) -> (Utf8PathBuf, &str
         items["alpha-goerli"]["my_account"]["address"]
             .as_str()
             .unwrap(),
-        1e17,
+        1e34,
     )
     .await;
 

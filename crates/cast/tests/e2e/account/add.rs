@@ -133,7 +133,7 @@ pub async fn test_happy_case_add_profile() {
 
 #[tokio::test]
 pub async fn test_detect_deployed() {
-    let accounts_file = "./tmp/accounts.json";
+    let accounts_file = "./tmp1/accounts.json";
     _ = fs::remove_file(accounts_file);
 
     let args = vec![

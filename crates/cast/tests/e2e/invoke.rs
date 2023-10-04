@@ -23,7 +23,7 @@ async fn test_happy_case() {
         "--calldata",
         "0x1 0x2",
         "--max-fee",
-        "999999999999",
+        "999999999999999",
     ]);
 
     let snapbox = runner(&args);
@@ -49,11 +49,9 @@ async fn test_contract_does_not_exist() {
     ]);
 
     let snapbox = runner(&args);
+    let output = String::from_utf8(snapbox.assert().success().get_output().stderr.clone()).unwrap();
 
-    snapbox.assert().stderr_matches(indoc! {r#"
-        command: invoke
-        error: Contract not found
-    "#});
+    assert!(output.contains("is not deployed"));
 }
 
 #[test]
@@ -71,13 +69,12 @@ fn test_wrong_function_name() {
     ]);
 
     let snapbox = runner(&args);
+    let output = String::from_utf8(snapbox.assert().success().get_output().stderr.clone()).unwrap();
 
-    snapbox.assert().stderr_matches(indoc! {r#"
-        command: invoke
-        error: Contract error
-    "#});
+    assert!(output.contains("Requested entry point was not found"));
 }
 
+// devnet
 #[test]
 fn test_wrong_calldata() {
     let contract_address = from_env("CAST_MAP_ADDRESS").unwrap();
@@ -128,6 +125,6 @@ fn test_too_low_max_fee() {
 
     snapbox.assert().stderr_matches(indoc! {r#"
         command: invoke
-        error: Transaction has been rejected
+        error: Transaction has been reverted: Calculated fee [..] exceeds max fee (1)
     "#});
 }
