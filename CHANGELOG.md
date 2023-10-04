@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Spying events interface is updated to enable the use of events defined inside contracts in assertions
 
+### Cast
+
+#### Changed
+
+- dropped official support for cairo 1 contracts. while they still should be working without any problems, from now on 
+the only officially supported cairo version is 2
+
 ## [0.7.1] - 2023-09-27
 
 ### Forge
