@@ -4,7 +4,7 @@ set -e
 COMPILER_DIRECTORY="$(git rev-parse --show-toplevel)/crates/cast/tests/utils/compiler"
 CAIRO_REPO="https://github.com/starkware-libs/cairo/releases/download"
 
-SCARB_VERSION="0.5.2"
+SCARB_VERSION=${SCARB_VERSION:-"0.7.0"}
 DEVNET_VERSION="0.5.5"
 
 if ! which starknet-devnet > /dev/null 2>&1; then
