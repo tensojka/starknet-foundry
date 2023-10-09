@@ -38,11 +38,11 @@ use crate::collecting::{collect_test_compilation_targets, compile_tests, Compile
 use crate::test_filter::TestsFilter;
 use test_collector::{FuzzerConfig, LinkedLibrary, TestCase};
 
+pub mod collecting;
 pub mod pretty_printing;
 pub mod scarb;
 pub mod test_case_summary;
 
-mod collecting;
 mod fuzzer;
 mod running;
 mod test_crate_summary;
