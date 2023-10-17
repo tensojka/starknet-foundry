@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use blockifier::execution::entry_point::{
     CallEntryPoint, CallType, EntryPointExecutionContext, ExecutionResources,
 };
@@ -24,30 +24,51 @@ use camino::Utf8PathBuf;
 use cheatnet::constants as cheatnet_constants;
 use cheatnet::forking::state::ForkStateReader;
 use cheatnet::state::{CheatnetState, ExtendedStateReader};
-use conversions::StarknetConversions;
-use starknet::core::types::BlockTag::Latest;
-use starknet::core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
 use starknet::core::utils::get_selector_from_name;
-use starknet::providers::jsonrpc::HttpTransport;
-use starknet::providers::{JsonRpcClient, Provider};
 use starknet_api::core::PatriciaKey;
 use starknet_api::core::{ContractAddress, EntryPointSelector};
 use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::hash::StarkHash;
 use starknet_api::patricia_key;
 use starknet_api::transaction::Calldata;
-use test_collector::{ForkConfig, TestCase};
-use tokio::runtime::Runtime;
+use test_collector::TestCase;
 use tokio::sync::mpsc::Sender;
-use url::Url;
 
-use crate::scarb::ForkTarget;
 use crate::test_case_summary::TestCaseSummary;
 
-use crate::test_execution_syscall_handler::TestExecutionSyscallHandler;
-use crate::{RunnerConfig, RunnerParams};
-
 use crate::test_execution_syscall_handler::TestExecutionState;
+use crate::test_execution_syscall_handler::TestExecutionSyscallHandler;
+
+use crate::scarb::StarknetContractArtifacts;
+
+pub mod forking;
+pub mod scarb;
+pub mod test_case_summary;
+mod test_execution_syscall_handler;
+
+pub struct RunnerParams {
+    pub corelib_path: Utf8PathBuf,
+    pub contracts: HashMap<String, StarknetContractArtifacts>,
+    pub predeployed_contracts: Utf8PathBuf,
+    pub environment_variables: HashMap<String, String>,
+}
+
+impl RunnerParams {
+    #[must_use]
+    pub fn new(
+        corelib_path: Utf8PathBuf,
+        contracts: HashMap<String, StarknetContractArtifacts>,
+        predeployed_contracts: Utf8PathBuf,
+        environment_variables: HashMap<String, String>,
+    ) -> Self {
+        Self {
+            corelib_path,
+            contracts,
+            predeployed_contracts,
+            environment_variables,
+        }
+    }
+}
 
 /// Builds `hints_dict` required in `cairo_vm::types::program::Program` from instructions.
 fn build_hints_dict<'b>(
@@ -75,11 +96,11 @@ fn build_hints_dict<'b>(
     (hints_dict, string_to_hint)
 }
 
-pub(crate) async fn blocking_run_from_test(
+pub async fn blocking_run_from_test(
     args: Vec<Felt252>,
     case: Arc<TestCase>,
     runner: Arc<SierraCasmRunner>,
-    runner_config: Arc<RunnerConfig>,
+    fork_state_reader: Option<ForkStateReader>,
     runner_params: Arc<RunnerParams>,
     sender: Option<Sender<()>>,
 ) -> Result<TestCaseSummary> {
@@ -88,7 +109,7 @@ pub(crate) async fn blocking_run_from_test(
             args,
             &case,
             &runner,
-            &runner_config,
+            fork_state_reader,
             &runner_params,
             &sender,
         )
@@ -145,11 +166,11 @@ fn build_syscall_handler<'a>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn run_test_case(
+pub fn run_test_case(
     args: Vec<Felt252>,
     case: &TestCase,
     runner: &SierraCasmRunner,
-    runner_config: &Arc<RunnerConfig>,
+    fork_state_reader: Option<ForkStateReader>,
     runner_params: &Arc<RunnerParams>,
     _sender: &Option<Sender<()>>,
 ) -> Result<TestCaseSummary> {
@@ -175,11 +196,7 @@ pub(crate) fn run_test_case(
         dict_state_reader: cheatnet_constants::build_testing_state(
             &runner_params.predeployed_contracts,
         ),
-        fork_state_reader: get_fork_state_reader(
-            &runner_config.workspace_root,
-            &runner_config.fork_targets,
-            &case.fork_config,
-        )?,
+        fork_state_reader,
     };
     let mut context = build_context();
     let mut execution_resources = ExecutionResources::default();
@@ -228,74 +245,4 @@ pub(crate) fn run_test_case(
 
         Err(err) => Err(err.into()),
     }
-}
-
-fn get_fork_state_reader(
-    workspace_root: &Utf8PathBuf,
-    fork_targets: &[ForkTarget],
-    fork_config: &Option<ForkConfig>,
-) -> Result<Option<ForkStateReader>> {
-    match &fork_config {
-        Some(ForkConfig::Params(url, mut block_id)) => {
-            if let BlockId::Tag(Latest) = block_id {
-                block_id = get_latest_block_number(url)?;
-            }
-            Ok(Some(ForkStateReader::new(
-                url,
-                block_id,
-                Some(workspace_root.join(".snfoundry_cache").as_ref()),
-            )))
-        }
-        Some(ForkConfig::Id(name)) => {
-            find_params_and_build_fork_state_reader(workspace_root, fork_targets, name)
-        }
-        _ => Ok(None),
-    }
-}
-
-fn get_latest_block_number(url: &str) -> Result<BlockId> {
-    let client = JsonRpcClient::new(HttpTransport::new(Url::parse(url).unwrap()));
-    let runtime = Runtime::new().expect("Could not instantiate Runtime");
-
-    match runtime.block_on(client.get_block_with_tx_hashes(BlockId::Tag(Latest))) {
-        Ok(MaybePendingBlockWithTxHashes::Block(block)) => Ok(BlockId::Number(block.block_number)),
-        _ => Err(anyhow!("Could not get the latest block number".to_string())),
-    }
-}
-
-fn find_params_and_build_fork_state_reader(
-    workspace_root: &Utf8PathBuf,
-    fork_targets: &[ForkTarget],
-    fork_alias: &str,
-) -> Result<Option<ForkStateReader>> {
-    if let Some(fork) = fork_targets.iter().find(|fork| fork.name == fork_alias) {
-        let block_id = fork
-            .block_id
-            .iter()
-            .map(|(id_type, value)| match id_type.as_str() {
-                "number" => Some(BlockId::Number(value.parse().unwrap())),
-                "hash" => Some(BlockId::Hash(value.to_field_element())),
-                "tag" => match value.as_str() {
-                    "Latest" => Some(BlockId::Tag(BlockTag::Latest)),
-                    "Pending" => Some(BlockId::Tag(BlockTag::Pending)),
-                    _ => unreachable!(),
-                },
-                _ => unreachable!(),
-            })
-            .collect::<Vec<_>>();
-        let [Some(mut block_id)] = block_id[..] else {
-            return Ok(None);
-        };
-
-        if let BlockId::Tag(Latest) = block_id {
-            block_id = get_latest_block_number(&fork.url)?;
-        }
-        return Ok(Some(ForkStateReader::new(
-            &fork.url,
-            block_id,
-            Some(workspace_root.join(".snfoundry_cache").as_ref()),
-        )));
-    }
-
-    Ok(None)
 }

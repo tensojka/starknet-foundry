@@ -10,7 +10,8 @@ use camino::Utf8PathBuf;
 
 use futures::StreamExt;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
-use running::blocking_run_from_test;
+use test_runner::scarb::ForkTarget;
+use test_runner::{blocking_run_from_test, forking::get_fork_state_reader};
 use serde::Deserialize;
 use tokio::sync::mpsc::channel;
 
@@ -32,18 +33,16 @@ use smol_str::SmolStr;
 use walkdir::WalkDir;
 
 use crate::fuzzer::RandomFuzzer;
-use crate::scarb::{ForgeConfig, ForkTarget, StarknetContractArtifacts};
+use crate::scarb::{ForgeConfig, StarknetContractArtifacts};
 pub use crate::test_crate_summary::TestCrateSummary;
 use test_collector::{collect_tests, FuzzerConfig, LinkedLibrary, TestCase};
+use test_runner::{RunnerParams, run_test_case};
 
 pub mod pretty_printing;
 pub mod scarb;
-pub mod test_case_summary;
 
 mod fuzzer;
-mod running;
 mod test_crate_summary;
-mod test_execution_syscall_handler;
 
 const FUZZER_RUNS_DEFAULT: u32 = 256;
 
@@ -106,30 +105,6 @@ impl RunnerConfig {
         }
     }
 }
-pub struct RunnerParams {
-    corelib_path: Utf8PathBuf,
-    contracts: HashMap<String, StarknetContractArtifacts>,
-    predeployed_contracts: Utf8PathBuf,
-    environment_variables: HashMap<String, String>,
-}
-
-impl RunnerParams {
-    #[must_use]
-    pub fn new(
-        corelib_path: Utf8PathBuf,
-        contracts: HashMap<String, StarknetContractArtifacts>,
-        predeployed_contracts: Utf8PathBuf,
-        environment_variables: HashMap<String, String>,
-    ) -> Self {
-        Self {
-            corelib_path,
-            contracts,
-            predeployed_contracts,
-            environment_variables,
-        }
-    }
-}
-
 pub struct CancellationTokens {
     exit_first: CancellationToken,
     error: CancellationToken,
@@ -429,10 +404,10 @@ async fn run_tests_from_crate(
         ));
     }
 
-    let mut results = vec![];
+    let mut results: Vec<TestCaseSummary> = vec![];
 
     while let Some(task) = tasks.next().await {
-        let result = task??;
+        let result: TestCaseSummary = task??;
 
         results.push(result);
     }
@@ -494,7 +469,7 @@ fn run_single_test(
                 // one of a test returns Err
                 Ok(TestCaseSummary::Interrupted {  })
             },
-            result = blocking_run_from_test(vec![], case.clone(),runner,  runner_config.clone(), runner_params.clone() , None) => {
+            result = blocking_run_from_test(vec![], case.clone(),runner,  get_fork_state_reader(&runner_config.workspace_root, runner_config.fork_targets.as_slice(), &case.fork_config)?, runner_params.clone() , None) => {
                 match result {
                     Ok(result) => {
                         if exit_first {
@@ -654,7 +629,7 @@ fn run_fuzzing_subtest(
                 args.clone(),
                 case,
                 runner,
-                runner_config.clone(),
+                get_fork_state_reader(&runner_config.workspace_root, runner_config.fork_targets.as_slice(), &case.fork_config)?,
                 runner_params.clone(),
                 Some(send),
             ) => {

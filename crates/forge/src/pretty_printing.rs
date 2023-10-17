@@ -1,4 +1,4 @@
-use crate::test_case_summary::TestCaseSummary;
+use test_runner::test_case_summary::TestCaseSummary;
 use crate::{TestCrateSummary, TestCrateType};
 use anyhow::Error;
 use console::style;

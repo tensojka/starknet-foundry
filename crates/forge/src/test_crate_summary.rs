@@ -1,4 +1,4 @@
-use crate::test_case_summary::TestCaseSummary;
+use test_runner::test_case_summary::TestCaseSummary;
 use crate::{RunnerStatus, TestCrateType};
 
 /// Summary of the test run in the file

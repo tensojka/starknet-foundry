@@ -1,7 +1,10 @@
 [package]
-name = "forge"
+name = "test-runner"
 version.workspace = true
 edition.workspace = true
+repository.workspace = true
+license.workspace = true
+license-file.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -16,7 +19,6 @@ starknet_api.workspace = true
 tempfile.workspace = true
 rayon.workspace = true
 test-collector = { path = "../test-collector" }
-test-runner = { path = "../test-runner" }
 cheatnet = { path = "../cheatnet" }
 conversions = { path = "../conversions" }
 cairo-lang-runner.workspace = true
@@ -64,10 +66,3 @@ tokio-util.workspace = true
 futures.workspace = true
 num-integer = "0.1.45"
 url.workspace = true
-
-[lib]
-name = "forge"
-
-[[bin]]
-name = "snforge"
-path = "src/main.rs"

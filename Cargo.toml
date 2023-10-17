@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/forge",
     "crates/test-collector",
+    "crates/test-runner",
     "crates/cast",
     "crates/cheatnet",
     "crates/conversions"
