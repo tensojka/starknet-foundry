@@ -20,7 +20,7 @@ use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_runner::casm_run::hint_to_hint_params;
 use cairo_lang_runner::SierraCasmRunner;
 use cairo_lang_runner::{Arg, RunnerError};
-use camino::Utf8PathBuf;
+use camino::Utf8Path;
 use cheatnet::constants as cheatnet_constants;
 use cheatnet::forking::state::ForkStateReader;
 use cheatnet::state::{CheatnetState, ExtendedStateReader};
@@ -33,6 +33,8 @@ use starknet_api::patricia_key;
 use starknet_api::transaction::Calldata;
 use test_collector::TestCase;
 use tokio::sync::mpsc::Sender;
+use tokio::task::JoinHandle;
+use url::Url;
 
 use crate::test_case_summary::TestCaseSummary;
 
@@ -96,25 +98,31 @@ fn build_hints_dict<'b>(
     (hints_dict, string_to_hint)
 }
 
-pub async fn blocking_run_from_test(
+pub fn blocking_run_from_test(
     args: Vec<Felt252>,
     case: Arc<TestCase>,
     runner: Arc<SierraCasmRunner>,
     fork_state_reader: Option<ForkStateReader>,
     runner_params: Arc<RunnerParams>,
-    sender: Option<Sender<()>>,
-) -> Result<TestCaseSummary> {
+    send: Sender<()>,
+    send_shut_down: Sender<()>,
+) -> JoinHandle<Result<TestCaseSummary>> {
     tokio::task::spawn_blocking(move || {
+        // Due to the inability of spawn_blocking to be abruptly cancelled,
+        // a channel is used to receive information indicating
+        // that the execution of the task is no longer necessary.
+        if send.is_closed() {
+            return Err(anyhow::anyhow!("stop spawn_blocking"));
+        }
         run_test_case(
             args,
             &case,
             &runner,
             fork_state_reader,
             &runner_params,
-            &sender,
+            &send_shut_down,
         )
     })
-    .await?
 }
 
 fn build_context() -> EntryPointExecutionContext {
@@ -172,7 +180,7 @@ pub fn run_test_case(
     runner: &SierraCasmRunner,
     fork_state_reader: Option<ForkStateReader>,
     runner_params: &Arc<RunnerParams>,
-    _sender: &Option<Sender<()>>,
+    _send_shut_down: &Sender<()>,
 ) -> Result<TestCaseSummary> {
     let available_gas = if let Some(available_gas) = &case.available_gas {
         Some(*available_gas)

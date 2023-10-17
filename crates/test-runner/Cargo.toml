@@ -19,11 +19,11 @@ starknet_api.workspace = true
 tempfile.workspace = true
 rayon.workspace = true
 test-collector = { path = "../test-collector" }
+test-runner = { path = "../test-runner" }
 cheatnet = { path = "../cheatnet" }
 conversions = { path = "../conversions" }
 cairo-lang-runner.workspace = true
 cairo-lang-casm.workspace = true
-cairo-lang-test-runner.workspace = true
 cairo-lang-sierra-to-casm.workspace = true
 cairo-lang-sierra.workspace = true
 cairo-lang-utils.workspace = true
@@ -44,7 +44,6 @@ num-bigint.workspace = true
 clap.workspace = true
 console.workspace = true
 rand.workspace = true
-project-root.workspace = true
 which.workspace = true
 schemars = { version = "0.8.12", features = ["preserve_order"] }
 parity-scale-codec = "3.5.0"
