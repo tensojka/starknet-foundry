@@ -20,7 +20,7 @@ use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_runner::casm_run::hint_to_hint_params;
 use cairo_lang_runner::SierraCasmRunner;
 use cairo_lang_runner::{Arg, RunnerError};
-use camino::Utf8Path;
+use camino::Utf8PathBuf;
 use cheatnet::constants as cheatnet_constants;
 use cheatnet::forking::state::ForkStateReader;
 use cheatnet::state::{CheatnetState, ExtendedStateReader};
@@ -34,7 +34,6 @@ use starknet_api::transaction::Calldata;
 use test_collector::TestCase;
 use tokio::sync::mpsc::Sender;
 use tokio::task::JoinHandle;
-use url::Url;
 
 use crate::test_case_summary::TestCaseSummary;
 

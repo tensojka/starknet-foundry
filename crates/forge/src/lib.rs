@@ -114,10 +114,7 @@ impl RunnerConfig {
         }
     }
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> origin/refactor-test-collecting-order
 pub struct CancellationTokens {
     exit_first: CancellationToken,
     error: CancellationToken,
@@ -714,5 +711,12 @@ mod tests {
                 fuzzer_seed: 32,
             }
         );
+    }
+
+    fn assert_is_send<T: Send>() {}
+
+    #[test]
+    fn type_assertions() {
+        assert_is_send::<TestCaseSummary>();
     }
 }

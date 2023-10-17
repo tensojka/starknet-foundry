@@ -4291,7 +4291,7 @@ dependencies = [
 
 [[package]]
 name = "test-runner"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "anyhow",
  "ark-ff",
@@ -4308,7 +4308,6 @@ dependencies = [
  "cairo-lang-sierra",
  "cairo-lang-sierra-to-casm",
  "cairo-lang-starknet",
- "cairo-lang-test-runner",
  "cairo-lang-utils",
  "cairo-vm",
  "camino",
@@ -4328,7 +4327,6 @@ dependencies = [
  "openssl",
  "parity-scale-codec",
  "parity-scale-codec-derive",
- "project-root",
  "rand",
  "rayon",
  "regex",
